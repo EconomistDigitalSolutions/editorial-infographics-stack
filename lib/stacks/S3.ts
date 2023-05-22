@@ -39,6 +39,10 @@ interface S3StackProps extends StackProps {
    * Where the KEY is a glob pattern, and the VALUE is a cach-control header value
    */
   objectCaching?: GlobCacheControl;
+  /** Whether to enable backup for the S3 bucket */
+  enableBackup?: boolean;
+  /** The retention period for the backups */
+  backupRetentionDays?: number;
 }
 
 /**
