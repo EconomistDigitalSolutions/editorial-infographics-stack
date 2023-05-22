@@ -16,5 +16,7 @@ function handler(event) {
     request.uri += '/index.html';
   }
 
+  // A small edit.
+
   return request;
 }
