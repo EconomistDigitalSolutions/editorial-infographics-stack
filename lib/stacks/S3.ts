@@ -5,6 +5,7 @@ import {
   StackProps,
   RemovalPolicy,
 } from 'aws-cdk-lib';
+import { BackupVault, BackupPlan } from 'aws-cdk-lib/aws-backup';
 import { OriginAccessIdentity } from 'aws-cdk-lib/aws-cloudfront';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import {
@@ -13,6 +14,9 @@ import {
   CacheControl,
   Source,
 } from 'aws-cdk-lib/aws-s3-deployment';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
 
 import { GlobCacheControl } from '../types';
 
@@ -82,12 +86,68 @@ class S3Stack extends Stack {
     this.bucket = this.createBucket();
     this.originAccessIdentity = this.createOriginAccessIdentity();
 
+    // Enable backup if specified
+    if (props.enableBackup) {
+      this.enableBucketBackup(props.backupRetentionDays);
+    }
+
     new CfnOutput(this, `${this.id}-output-s3-oia`, {
       value: this.getOriginAccessIdentity().originAccessIdentityName,
     });
     new CfnOutput(this, `${this.id}-output-s3-bucket`, {
       value: this.getBucket().bucketName,
     });
+  }
+
+  private enableBucketBackup(retentionDays?: number) {
+    // Create the backup vault
+    const backupVault = new BackupVault(this, `${this.id}-backup-vault`, {
+      backupVaultName: `${this.id}-backup-vault`,
+    });
+
+    // Create the backup plan
+    const backupPlan = new BackupPlan(this, `${this.id}-backup-plan`, {
+      backupPlanName: `${this.id}-backup-plan`,
+      backupPlanRules: [
+        {
+          ruleName: `${this.id}-backup-rule`,
+          targetBackupVault: backupVault,
+          scheduleExpression: 'cron(0 0 * * ? *)', // Daily backup
+          deletionPolicy: backup.RetentionRuleDeletionPolicy.DELETE,
+          retention: backup.RetentionRule.countedDays(retentionDays ?? 7),
+        },
+      ],
+    });
+
+    // Grant necessary permissions to the backup role
+    const backupRole = this.bucket.grantPrincipal.addToPolicy(
+      new iam.PolicyStatement({
+        actions: ['backup:StartBackupJob'],
+        resources: [this.bucket.bucketArn],
+      }),
+    );
+
+    // Create an event rule to trigger backups when objects are created
+    const backupRule = new events.Rule(this, `${this.id}-backup-rule`, {
+      eventPattern: {
+        source: ['aws.s3'],
+        detailType: ['AWS API Call via CloudTrail'],
+        detail: {
+          eventSource: ['s3.amazonaws.com'],
+          eventName: ['PutObject', 'CopyObject'],
+          requestParameters: {
+            bucketName: [this.bucket.bucketName],
+          },
+        },
+      },
+    });
+
+    // Create an event target to initiate backups using AWS Backup
+    backupRule.addTarget(new targets.LambdaFunction(backupPlan.backupPlanArn, {
+      event: events.RuleTargetInput.fromObject({
+        bucketArn: this.bucket.bucketArn,
+      }),
+    }));
   }
 
   /**
