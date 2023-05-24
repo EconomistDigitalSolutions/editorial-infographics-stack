@@ -68,9 +68,14 @@ class S3Stack extends Stack {
   private bucket: Bucket;
 
   /**
-   * Our AWS S3 Bucket object
+   * Config for optional backups
    */
-  private backupPlan: BackupPlan;
+  private backupPlan: BackupPlan | undefined;
+
+  /**
+   * An optional vault for backing up S3
+   */
+  private backupVault: BackupVault | undefined;
 
   /**
    * Our stack properties
@@ -92,13 +97,10 @@ class S3Stack extends Stack {
 
     this.bucket = this.createBucket();
     this.originAccessIdentity = this.createOriginAccessIdentity();
-
-    this.backupPlan = this.enableBucketBackup(props.backupRetentionDays);
-
-    new CfnOutput(this, `${this.id}-output-backup`, {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      value: this.backupPlan.backupVault.backupVaultName,
-    });
+    
+    if (this.props.enableBackup) {
+      this.configureBackup();
+    }
 
     new CfnOutput(this, `${this.id}-output-s3-oia`, {
       value: this.getOriginAccessIdentity().originAccessIdentityName,
@@ -108,34 +110,28 @@ class S3Stack extends Stack {
     });
   }
 
-  private enableBucketBackup(retentionDays?: number) {
-    // Create the backup vault
-    const backupVault = new BackupVault(this, `${this.id}-backup-vault`, {
+  private configureBackup() {
+    // Create vault for backups
+    this.backupVault = new BackupVault(this, `${this.id}-backup-vault`, {
       backupVaultName: `${this.id}-backup-vault`,
     });
 
     // Create the backup plan
-    const backupPlan = new BackupPlan(this, `${this.id}-backup-plan`, {
+    this.backupPlan = new BackupPlan(this, `${this.id}-backup-plan`, {
       backupPlanName: `${this.id}-backup-plan`,
       backupPlanRules: [
         new BackupPlanRule(
           {
             ruleName: `${this.id}-backup-rule`,
-            backupVault,
+            backupVault: this.backupVault,
             scheduleExpression: events.Schedule.expression('cron(0 0 * * ? *)'), // Daily backup
-            deleteAfter: Duration.days(retentionDays ?? 35),
+            deleteAfter: Duration.days(this.props.backupRetentionDays ?? 35),
           },
         ),
       ],
     });
 
     // // Grant necessary permissions to the backup role
-    // const backupRole = this.bucket.grantPrincipal.addToPolicy(
-    //   new iam.PolicyStatement({
-    //     actions: ['backup:StartBackupJob'],
-    //     resources: [this.bucket.bucketArn],
-    //   }),
-    // );
     const backupPlanRole = new iam.Role(this, 's3-example-bucket-backup-role', {
       assumedBy: new iam.ServicePrincipal('backup.amazonaws.com'),
     });
@@ -197,7 +193,7 @@ class S3Stack extends Stack {
 
     awsS3BackupsCustomPolicy.attachToRole(backupPlanRole);
 
-    backupPlan.addSelection(
+    this.backupPlan.addSelection(
       `${this.id}-selection`,
       {
         resources: [
@@ -208,7 +204,13 @@ class S3Stack extends Stack {
       },
     );
 
-    return backupPlan;
+    new CfnOutput(this, `${this.id}-vault-name`, {
+      value: this.backupVault.backupVaultName,
+    });
+
+    new CfnOutput(this, `${this.id}-plan-arn`, {
+      value: this.backupPlan.backupPlanArn,
+    });
   }
 
   /**

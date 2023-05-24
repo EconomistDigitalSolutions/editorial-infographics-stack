@@ -1,6 +1,5 @@
 import { App, StackProps, Tags } from 'aws-cdk-lib';
 
-import BackupStack from 'lib/stacks/Backup';
 import * as G from '../lib/consts';
 import { Tags as TagMap } from '../lib/types';
 import S3Stack from '../lib/stacks/S3';
@@ -39,14 +38,8 @@ const S3 = new S3Stack(app, `${G.APP_NAME}-s3`, {
   bucketSource: { path: G.S3_CONTENT_PATH },
   forceRemove: G.S3_FORCE_REMOVE,
   objectCaching: G.S3_CACHE_CONTROL,
-  enableBackup: true,
+  enableBackup: G.ENABLE_BACKUP,
   backupRetentionDays: 35,
 });
 
 S3.deploy();
-
-new BackupStack(app, `${G.APP_NAME}-backup`, {
-  ...defaultProps,
-  bucketArn: S3.getBucket().bucketArn,
-  backupRetentionDays: 35,
-});

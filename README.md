@@ -17,7 +17,7 @@ To get started you must set up a `.env` file. You can copy the [template](.env.e
 To build, create a `.env` file with the default configuration needed (you can copy the [template](.env.example) file to help you get started).
 
 - `APP_NAME` - This is the name of your app and is used cloudformation template prefixes
-- `S3_CONTENT_PATH` - local path to your static site files. This is *not required* if running from docker, as the mount point will be used. View the [docker instructions](#Docker) for more information.
+- `S3_CONTENT_PATH` - local path to your static site files. This is _not required_ if running from docker, as the mount point will be used. View the [docker instructions](#Docker) for more information.
 
 Ensure you have your [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html) variables set up so that CDK can access your AWS account, then run:
 
@@ -68,13 +68,14 @@ By default, the `.env` file is used on the root of the project. However, you can
 You can run this directly from docker to install your static site.
 
 ```bash
+docker build ./ -t infographics-test
 docker run --rm \
   --env-file=.env \ # the location of your env file
   --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \ # aws keys - can be included in env file
   --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
   --env AWS_DEFAULT_REGION=eu-west-1 \
   --volume /path/to/your/content:/srv \ # path of your content, to the /srv mount point
-  ghcr.io/drinkataco/cdk-static-site:latest
+  infographics-test
 ```
 
 This docker container runs the deployment based on the supplied env file. The static content variable, however, is ignored (S3_CONTENT_PATH) and always set to /srv - which is mounted to the container.

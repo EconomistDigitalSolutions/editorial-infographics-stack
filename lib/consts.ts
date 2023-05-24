@@ -57,3 +57,5 @@ export const S3_CACHE_CONTROL: T.GlobCacheControl = stringToObject(
   '|',
   ':',
 );
+
+export const ENABLE_BACKUP = process.env.ENABLE_BACKUP === 'true';
