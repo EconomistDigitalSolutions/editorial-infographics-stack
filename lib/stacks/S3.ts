@@ -4,8 +4,11 @@ import {
   Stack,
   StackProps,
   RemovalPolicy,
+  Duration,
 } from 'aws-cdk-lib';
-import { BackupVault, BackupPlan } from 'aws-cdk-lib/aws-backup';
+import {
+  BackupVault, BackupPlan, BackupPlanRule, BackupResource,
+} from 'aws-cdk-lib/aws-backup';
 import { OriginAccessIdentity } from 'aws-cdk-lib/aws-cloudfront';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import {
@@ -16,7 +19,6 @@ import {
 } from 'aws-cdk-lib/aws-s3-deployment';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
-import * as targets from 'aws-cdk-lib/aws-events-targets';
 
 import { GlobCacheControl } from '../types';
 
@@ -66,6 +68,11 @@ class S3Stack extends Stack {
   private bucket: Bucket;
 
   /**
+   * Our AWS S3 Bucket object
+   */
+  private backupPlan: BackupPlan;
+
+  /**
    * Our stack properties
    */
   private props: S3StackProps;
@@ -86,10 +93,12 @@ class S3Stack extends Stack {
     this.bucket = this.createBucket();
     this.originAccessIdentity = this.createOriginAccessIdentity();
 
-    // Enable backup if specified
-    if (props.enableBackup) {
-      this.enableBucketBackup(props.backupRetentionDays);
-    }
+    this.backupPlan = this.enableBucketBackup(props.backupRetentionDays);
+
+    new CfnOutput(this, `${this.id}-output-backup`, {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      value: this.backupPlan.backupVault.backupVaultName,
+    });
 
     new CfnOutput(this, `${this.id}-output-s3-oia`, {
       value: this.getOriginAccessIdentity().originAccessIdentityName,
@@ -109,45 +118,97 @@ class S3Stack extends Stack {
     const backupPlan = new BackupPlan(this, `${this.id}-backup-plan`, {
       backupPlanName: `${this.id}-backup-plan`,
       backupPlanRules: [
-        {
-          ruleName: `${this.id}-backup-rule`,
-          targetBackupVault: backupVault,
-          scheduleExpression: 'cron(0 0 * * ? *)', // Daily backup
-          deletionPolicy: backup.RetentionRuleDeletionPolicy.DELETE,
-          retention: backup.RetentionRule.countedDays(retentionDays ?? 7),
-        },
+        new BackupPlanRule(
+          {
+            ruleName: `${this.id}-backup-rule`,
+            backupVault,
+            scheduleExpression: events.Schedule.expression('cron(0 0 * * ? *)'), // Daily backup
+            deleteAfter: Duration.days(retentionDays ?? 35),
+          },
+        ),
       ],
     });
 
-    // Grant necessary permissions to the backup role
-    const backupRole = this.bucket.grantPrincipal.addToPolicy(
-      new iam.PolicyStatement({
-        actions: ['backup:StartBackupJob'],
-        resources: [this.bucket.bucketArn],
-      }),
-    );
-
-    // Create an event rule to trigger backups when objects are created
-    const backupRule = new events.Rule(this, `${this.id}-backup-rule`, {
-      eventPattern: {
-        source: ['aws.s3'],
-        detailType: ['AWS API Call via CloudTrail'],
-        detail: {
-          eventSource: ['s3.amazonaws.com'],
-          eventName: ['PutObject', 'CopyObject'],
-          requestParameters: {
-            bucketName: [this.bucket.bucketName],
-          },
-        },
-      },
+    // // Grant necessary permissions to the backup role
+    // const backupRole = this.bucket.grantPrincipal.addToPolicy(
+    //   new iam.PolicyStatement({
+    //     actions: ['backup:StartBackupJob'],
+    //     resources: [this.bucket.bucketArn],
+    //   }),
+    // );
+    const backupPlanRole = new iam.Role(this, 's3-example-bucket-backup-role', {
+      assumedBy: new iam.ServicePrincipal('backup.amazonaws.com'),
     });
 
-    // Create an event target to initiate backups using AWS Backup
-    backupRule.addTarget(new targets.LambdaFunction(backupPlan.backupPlanArn, {
-      event: events.RuleTargetInput.fromObject({
-        bucketArn: this.bucket.bucketArn,
-      }),
-    }));
+    const awsS3BackupsCustomPolicy = new iam.Policy(this, 's3-custom-aws-backup-policy', {
+      statements: [
+        new iam.PolicyStatement({
+          sid: 'S3BucketBackupPermissions',
+          actions: [
+            's3:GetInventoryConfiguration',
+            's3:PutInventoryConfiguration',
+            's3:ListBucketVersions',
+            's3:ListBucket',
+            's3:GetBucketVersioning',
+            's3:GetBucketNotification',
+            's3:PutBucketNotification',
+            's3:GetBucketLocation',
+            's3:GetBucketTagging',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [this.bucket.bucketArn],
+        }),
+        new iam.PolicyStatement({
+          sid: 'S3ObjectBackupPermissions',
+          actions: [
+            's3:GetObjectAcl',
+            's3:GetObject',
+            's3:GetObjectVersionTagging',
+            's3:GetObjectVersionAcl',
+            's3:GetObjectTagging',
+            's3:GetObjectVersion',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [this.bucket.bucketArn, `${this.bucket.bucketArn}/*`],
+        }),
+        new iam.PolicyStatement({
+          sid: 'S3GlobalPermissions',
+          actions: ['s3:ListAllMyBuckets'],
+          effect: iam.Effect.ALLOW,
+          resources: ['*'],
+        }),
+        new iam.PolicyStatement({
+          sid: 'EventsPermissions',
+          actions: [
+            'events:DescribeRule',
+            'events:EnableRule',
+            'events:PutRule',
+            'events:DeleteRule',
+            'events:PutTargets',
+            'events:RemoveTargets',
+            'events:ListTargetsByRule',
+            'events:DisableRule',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: ['arn:aws:events:*:*:rule/AwsBackupManagedRule*'],
+        }),
+      ],
+    });
+
+    awsS3BackupsCustomPolicy.attachToRole(backupPlanRole);
+
+    backupPlan.addSelection(
+      `${this.id}-selection`,
+      {
+        resources: [
+          BackupResource.fromArn(this.bucket.bucketArn),
+        ],
+        allowRestores: true,
+        role: backupPlanRole,
+      },
+    );
+
+    return backupPlan;
   }
 
   /**
