@@ -4,6 +4,9 @@ declare global {
     interface ProcessEnv {
       APP_NAME: string;
       CERTIFICATE_ARN?: string,
+      LAMBDA_FUNCTION_NAME: string;
+      LAMBDA_INDEX_HANDLER: string;
+      LAMBDA_CODE_PATH: string;
       S3_BUCKET_NAME?: string;
       S3_CONTENT_PATH?: string;
       DOCKER_S3_CONTENT_PATH?: string;
