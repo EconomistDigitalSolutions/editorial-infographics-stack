@@ -14,8 +14,10 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.338.0",
     "aws-cdk": "^2.25.0",
     "aws-cdk-lib": "^2.25.0",
+    "aws-sdk": "^2.1383.0",
     "constructs": "^10.1.13",
     "dotenv": "^16.0.0"
   },
