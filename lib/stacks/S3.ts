@@ -97,7 +97,7 @@ class S3Stack extends Stack {
 
     this.bucket = this.createBucket();
     this.originAccessIdentity = this.createOriginAccessIdentity();
-    
+
     if (this.props.enableBackup) {
       this.configureBackup();
     }
@@ -125,7 +125,7 @@ class S3Stack extends Stack {
             ruleName: `${this.id}-backup-rule`,
             backupVault: this.backupVault,
             scheduleExpression: events.Schedule.expression('cron(0 0 * * ? *)'), // Daily backup
-            deleteAfter: Duration.days(this.props.backupRetentionDays)
+            deleteAfter: Duration.days(this.props.backupRetentionDays),
           },
         ),
       ],
@@ -191,8 +191,8 @@ class S3Stack extends Stack {
         new iam.PolicyStatement({
           sid: 'CloudwatchPermissions',
           actions: [
-            "cloudwatch:GetMetricData",
-            "events:ListRules"
+            'cloudwatch:GetMetricData',
+            'events:ListRules',
           ],
           effect: iam.Effect.ALLOW,
           resources: ['*'],
@@ -227,7 +227,7 @@ class S3Stack extends Stack {
           ],
           effect: iam.Effect.ALLOW,
           resources: [this.bucket.bucketArn, `${this.bucket.bucketArn}/*`],
-      }),
+        }),
       ],
     });
 
@@ -277,7 +277,7 @@ class S3Stack extends Stack {
       /**
        * Optional versioning on the bucket - required for backups
        */
-      versioned: this.props.enableBackup
+      versioned: this.props.enableBackup,
     });
   }
 
