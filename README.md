@@ -2,7 +2,7 @@
 
 ![Lint and Tests](https://github.com/drinkataco/cdk-static-site/actions/workflows/main.yml/badge.svg)
 
-This repositories purpose is to provision a Cloudfront distribution for an S3 bucket fronted by .
+This repositories purpose is to provide static S3-based sites.
 
 ![Diagram](./assets/diagram.png)
 
