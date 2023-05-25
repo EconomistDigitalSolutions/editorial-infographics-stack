@@ -39,7 +39,7 @@ const S3 = new S3Stack(app, `${G.APP_NAME}-s3`, {
   forceRemove: G.S3_FORCE_REMOVE,
   objectCaching: G.S3_CACHE_CONTROL,
   enableBackup: G.ENABLE_BACKUP,
-  backupRetentionDays: 35,
+  backupRetentionDays: G.BACKUP_RETENTION_DAYS,
 });
 
 S3.deploy();

@@ -35,6 +35,10 @@ interface S3StackProps extends StackProps {
     /** local path of files to upload to S3 */
     path: string;
   };
+  /** Whether to enable backup for the S3 bucket */
+  enableBackup: boolean;
+  /** The retention period for the backups */
+  backupRetentionDays: number;
   /**
    * Whether we want create a DANGEROUS force remove of our S3 bucket.
    * This will force delete all objects and the bucket
@@ -45,10 +49,6 @@ interface S3StackProps extends StackProps {
    * Where the KEY is a glob pattern, and the VALUE is a cach-control header value
    */
   objectCaching?: GlobCacheControl;
-  /** Whether to enable backup for the S3 bucket */
-  enableBackup?: boolean;
-  /** The retention period for the backups */
-  backupRetentionDays?: number;
 }
 
 /**
@@ -125,7 +125,7 @@ class S3Stack extends Stack {
             ruleName: `${this.id}-backup-rule`,
             backupVault: this.backupVault,
             scheduleExpression: events.Schedule.expression('cron(0 0 * * ? *)'), // Daily backup
-            deleteAfter: Duration.days(this.props.backupRetentionDays ?? 35),
+            deleteAfter: Duration.days(this.props.backupRetentionDays)
           },
         ),
       ],
@@ -188,6 +188,46 @@ class S3Stack extends Stack {
           effect: iam.Effect.ALLOW,
           resources: ['arn:aws:events:*:*:rule/AwsBackupManagedRule*'],
         }),
+        new iam.PolicyStatement({
+          sid: 'CloudwatchPermissions',
+          actions: [
+            "cloudwatch:GetMetricData",
+            "events:ListRules"
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: ['*'],
+        }),
+        new iam.PolicyStatement({
+          sid: 'S3BucketRestorePermissions',
+          actions: [
+            's3:CreateBucket',
+            's3:ListBucketVersions',
+            's3:ListBucket',
+            's3:GetBucketVersioning',
+            's3:GetBucketLocation',
+            's3:PutBucketVersioning',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [this.bucket.bucketArn],
+        }),
+        new iam.PolicyStatement({
+          sid: 'S3ObjectRestorePermissions',
+          actions: [
+            's3:GetObject',
+            's3:GetObjectVersion',
+            's3:DeleteObject',
+            's3:PutObjectVersionAcl',
+            's3:GetObjectVersionAcl',
+            's3:GetObjectTagging',
+            's3:PutObjectTagging',
+            's3:GetObjectAcl',
+            's3:PutObjectAcl',
+            's3:PutObject',
+            's3:ListMultipartUploadParts',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [this.bucket.bucketArn, `${this.bucket.bucketArn}/*`],
+      }),
       ],
     });
 
@@ -234,6 +274,10 @@ class S3Stack extends Stack {
        * true
        */
       autoDeleteObjects: !!this.props.forceRemove,
+      /**
+       * Optional versioning on the bucket - required for backups
+       */
+      versioned: this.props.enableBackup
     });
   }
 
