@@ -12,6 +12,8 @@ describe('stack for S3', () => {
       bucketSource: {
         path: '/path/to/files',
       },
+      enableBackup: true,
+      backupRetentionDays: 10,
     });
 
     const template = Template.fromStack(s3Stack);
@@ -20,6 +22,50 @@ describe('stack for S3', () => {
       'AWS::S3::Bucket',
       Match.objectEquals({
         Type: 'AWS::S3::Bucket',
+        Properties: {
+          VersioningConfiguration: {
+            Status: 'Enabled',
+          },
+        },
+        UpdateReplacePolicy: 'Retain',
+        DeletionPolicy: 'Retain',
+      }),
+    );
+
+    template.hasResource(
+      'AWS::Backup::BackupPlan',
+      Match.objectEquals({
+        Type: 'AWS::Backup::BackupPlan',
+        Properties: {
+          BackupPlan: {
+            BackupPlanName: 'TestS3Stack-backup-plan',
+            BackupPlanRule: [
+              {
+                Lifecycle: {
+                  DeleteAfterDays: 10,
+                },
+                RuleName: 'TestS3Stack-backup-rule',
+                ScheduleExpression: 'cron(0 0 * * ? *)',
+                TargetBackupVault: {
+                  'Fn::GetAtt': [
+                    'TestS3Stackbackupvault5D7FAB34',
+                    'BackupVaultName',
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      }),
+    );
+
+    template.hasResource(
+      'AWS::Backup::BackupVault',
+      Match.objectEquals({
+        Type: 'AWS::Backup::BackupVault',
+        Properties: {
+          BackupVaultName: 'TestS3Stack-backup-vault',
+        },
         UpdateReplacePolicy: 'Retain',
         DeletionPolicy: 'Retain',
       }),
@@ -67,6 +113,8 @@ describe('stack for S3', () => {
         path: '/path/to/files',
       },
       forceRemove: true,
+      enableBackup: false,
+      backupRetentionDays: 10,
     });
 
     const template = Template.fromStack(s3Stack);
