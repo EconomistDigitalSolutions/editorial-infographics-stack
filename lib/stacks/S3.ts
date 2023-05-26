@@ -4,7 +4,11 @@ import {
   Stack,
   StackProps,
   RemovalPolicy,
+  Duration,
 } from 'aws-cdk-lib';
+import {
+  BackupVault, BackupPlan, BackupPlanRule, BackupResource,
+} from 'aws-cdk-lib/aws-backup';
 import { OriginAccessIdentity } from 'aws-cdk-lib/aws-cloudfront';
 import { Bucket } from 'aws-cdk-lib/aws-s3';
 import {
@@ -13,6 +17,8 @@ import {
   CacheControl,
   Source,
 } from 'aws-cdk-lib/aws-s3-deployment';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as events from 'aws-cdk-lib/aws-events';
 
 import { GlobCacheControl } from '../types';
 
@@ -29,6 +35,10 @@ interface S3StackProps extends StackProps {
     /** local path of files to upload to S3 */
     path: string;
   };
+  /** Whether to enable backup for the S3 bucket */
+  enableBackup: boolean;
+  /** The retention period for the backups */
+  backupRetentionDays: number;
   /**
    * Whether we want create a DANGEROUS force remove of our S3 bucket.
    * This will force delete all objects and the bucket
@@ -58,6 +68,16 @@ class S3Stack extends Stack {
   private bucket: Bucket;
 
   /**
+   * Config for optional backups
+   */
+  private backupPlan: BackupPlan | undefined;
+
+  /**
+   * An optional vault for backing up S3
+   */
+  private backupVault: BackupVault | undefined;
+
+  /**
    * Our stack properties
    */
   private props: S3StackProps;
@@ -78,11 +98,158 @@ class S3Stack extends Stack {
     this.bucket = this.createBucket();
     this.originAccessIdentity = this.createOriginAccessIdentity();
 
+    if (this.props.enableBackup) {
+      this.configureBackup();
+    }
+
     new CfnOutput(this, `${this.id}-output-s3-oia`, {
       value: this.getOriginAccessIdentity().originAccessIdentityName,
     });
     new CfnOutput(this, `${this.id}-output-s3-bucket`, {
       value: this.getBucket().bucketName,
+    });
+  }
+
+  private configureBackup() {
+    // Create vault for backups
+    this.backupVault = new BackupVault(this, `${this.id}-backup-vault`, {
+      backupVaultName: `${this.id}-backup-vault`,
+    });
+
+    // Create the backup plan
+    this.backupPlan = new BackupPlan(this, `${this.id}-backup-plan`, {
+      backupPlanName: `${this.id}-backup-plan`,
+      backupPlanRules: [
+        new BackupPlanRule(
+          {
+            ruleName: `${this.id}-backup-rule`,
+            backupVault: this.backupVault,
+            scheduleExpression: events.Schedule.expression('cron(0 0 * * ? *)'), // Daily backup
+            deleteAfter: Duration.days(this.props.backupRetentionDays),
+          },
+        ),
+      ],
+    });
+
+    // // Grant necessary permissions to the backup role
+    const backupPlanRole = new iam.Role(this, 's3-example-bucket-backup-role', {
+      assumedBy: new iam.ServicePrincipal('backup.amazonaws.com'),
+    });
+
+    const awsS3BackupsCustomPolicy = new iam.Policy(this, 's3-custom-aws-backup-policy', {
+      statements: [
+        new iam.PolicyStatement({
+          sid: 'S3BucketBackupPermissions',
+          actions: [
+            's3:GetInventoryConfiguration',
+            's3:PutInventoryConfiguration',
+            's3:ListBucketVersions',
+            's3:ListBucket',
+            's3:GetBucketVersioning',
+            's3:GetBucketNotification',
+            's3:PutBucketNotification',
+            's3:GetBucketLocation',
+            's3:GetBucketTagging',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [this.bucket.bucketArn],
+        }),
+        new iam.PolicyStatement({
+          sid: 'S3ObjectBackupPermissions',
+          actions: [
+            's3:GetObjectAcl',
+            's3:GetObject',
+            's3:GetObjectVersionTagging',
+            's3:GetObjectVersionAcl',
+            's3:GetObjectTagging',
+            's3:GetObjectVersion',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [this.bucket.bucketArn, `${this.bucket.bucketArn}/*`],
+        }),
+        new iam.PolicyStatement({
+          sid: 'S3GlobalPermissions',
+          actions: ['s3:ListAllMyBuckets'],
+          effect: iam.Effect.ALLOW,
+          resources: ['*'],
+        }),
+        new iam.PolicyStatement({
+          sid: 'EventsPermissions',
+          actions: [
+            'events:DescribeRule',
+            'events:EnableRule',
+            'events:PutRule',
+            'events:DeleteRule',
+            'events:PutTargets',
+            'events:RemoveTargets',
+            'events:ListTargetsByRule',
+            'events:DisableRule',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: ['arn:aws:events:*:*:rule/AwsBackupManagedRule*'],
+        }),
+        new iam.PolicyStatement({
+          sid: 'CloudwatchPermissions',
+          actions: [
+            'cloudwatch:GetMetricData',
+            'events:ListRules',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: ['*'],
+        }),
+        new iam.PolicyStatement({
+          sid: 'S3BucketRestorePermissions',
+          actions: [
+            's3:CreateBucket',
+            's3:ListBucketVersions',
+            's3:ListBucket',
+            's3:GetBucketVersioning',
+            's3:GetBucketLocation',
+            's3:PutBucketVersioning',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [this.bucket.bucketArn],
+        }),
+        new iam.PolicyStatement({
+          sid: 'S3ObjectRestorePermissions',
+          actions: [
+            's3:GetObject',
+            's3:GetObjectVersion',
+            's3:DeleteObject',
+            's3:PutObjectVersionAcl',
+            's3:GetObjectVersionAcl',
+            's3:GetObjectTagging',
+            's3:PutObjectTagging',
+            's3:GetObjectAcl',
+            's3:PutObjectAcl',
+            's3:PutObject',
+            's3:ListMultipartUploadParts',
+          ],
+          effect: iam.Effect.ALLOW,
+          resources: [this.bucket.bucketArn, `${this.bucket.bucketArn}/*`],
+        }),
+      ],
+    });
+
+    awsS3BackupsCustomPolicy.attachToRole(backupPlanRole);
+
+    this.backupPlan.addSelection(
+      `${this.id}-selection`,
+      {
+        resources: [
+          BackupResource.fromArn(this.bucket.bucketArn),
+        ],
+        allowRestores: true,
+        role: backupPlanRole,
+      },
+    );
+
+    new CfnOutput(this, `${this.id}-vault-name`, {
+      value: this.backupVault.backupVaultName,
+    });
+
+    new CfnOutput(this, `${this.id}-plan-arn`, {
+      value: this.backupPlan.backupPlanArn,
     });
   }
 
@@ -107,6 +274,10 @@ class S3Stack extends Stack {
        * true
        */
       autoDeleteObjects: !!this.props.forceRemove,
+      /**
+       * Optional versioning on the bucket - required for backups
+       */
+      versioned: this.props.enableBackup,
     });
   }
 

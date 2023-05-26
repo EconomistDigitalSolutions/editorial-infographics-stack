@@ -4,16 +4,6 @@ declare global {
     interface ProcessEnv {
       APP_NAME: string;
       CERTIFICATE_ARN?: string,
-      CLOUDFRONT_ALLOWED_METHODS?: string;
-      CLOUDFRONT_ERROR_RESPONSES: string;
-      CLOUDFRONT_GEO_DENYLIST?: string;
-      CLOUDFRONT_LOGGING?: number;
-      CLOUDFRONT_PRICE_CLASS?: string;
-      CLOUDFRONT_ROOT_OBJECT?: string;
-      CLOUDFRONT_FUNCTIONS_REQUEST?: string;
-      CLOUDFRONT_FUNCTIONS_RESPONSE?: string;
-      ROUTE53_HOSTED_ZONE_DOMAIN?: string;
-      ROUTE53_SUBDOMAIN?: string;
       S3_BUCKET_NAME?: string;
       S3_CONTENT_PATH?: string;
       DOCKER_S3_CONTENT_PATH?: string;

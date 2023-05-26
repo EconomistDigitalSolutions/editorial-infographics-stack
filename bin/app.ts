@@ -1,8 +1,7 @@
 import { App, StackProps, Tags } from 'aws-cdk-lib';
 
 import * as G from '../lib/consts';
-import { Tags as TagMap, CloudfrontDns } from '../lib/types';
-import CloudfrontStack from '../lib/stacks/Cloudfront';
+import { Tags as TagMap } from '../lib/types';
 import S3Stack from '../lib/stacks/S3';
 
 if (!G.APP_NAME) {
@@ -39,33 +38,8 @@ const S3 = new S3Stack(app, `${G.APP_NAME}-s3`, {
   bucketSource: { path: G.S3_CONTENT_PATH },
   forceRemove: G.S3_FORCE_REMOVE,
   objectCaching: G.S3_CACHE_CONTROL,
+  enableBackup: G.ENABLE_BACKUP,
+  backupRetentionDays: G.BACKUP_RETENTION_DAYS,
 });
 
 S3.deploy();
-
-// Custom DNS is optional. We'll only create the object if a hosted zone domain has been provided
-let dns!: CloudfrontDns;
-if (G.ROUTE53_HOSTED_ZONE_DOMAIN) {
-  dns = {
-    certificateArn: G.CERTIFICATE_ARN,
-    hostedZoneDomainName: G.ROUTE53_HOSTED_ZONE_DOMAIN,
-    subdomain: G.ROUTE53_SUBDOMAIN,
-  };
-}
-
-new CloudfrontStack(app, `${G.APP_NAME}-cloudfront`, {
-  ...defaultProps,
-  allowedMethods: G.CLOUDFRONT_ALLOWED_METHODS,
-  bucket: S3.getBucket(),
-  defaultRootObject: G.CLOUDFRONT_ROOT_OBJECT,
-  denyGeo: G.CLOUDFRONT_GEO_DENYLIST,
-  dns,
-  enableLogging: G.CLOUDFRONT_LOGGING,
-  errorResponses: G.CLOUDFRONT_ERROR_RESPONSES,
-  functions: {
-    viewerRequest: G.CLOUDFRONT_FUNCTIONS_REQUEST,
-    viewerResponse: G.CLOUDFRONT_FUNCTIONS_RESPONSE,
-  },
-  originAccessIdentity: S3.getOriginAccessIdentity(),
-  priceClass: G.CLOUDFRONT_PRICE_CLASS,
-});
