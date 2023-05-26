@@ -3,7 +3,7 @@ import { App, StackProps, Tags } from 'aws-cdk-lib';
 import * as G from '../lib/consts';
 import { Tags as TagMap } from '../lib/types';
 import S3Stack from '../lib/stacks/S3';
-import SftpStack from '../lib/stacks/SFTP';
+import SftpTransferStack from '../lib/stacks/SFTP';
 
 if (!G.APP_NAME) {
   throw Error('Please set an APP_NAME for your project');
@@ -45,7 +45,6 @@ const S3 = new S3Stack(app, `${G.APP_NAME}-s3`, {
 
 S3.deploy();
 
-new SftpStack(app, `${G.APP_NAME}-transfer`, {
+new SftpTransferStack(app, `${G.APP_NAME}-transfer`, {
   ...defaultProps,
-  loggingRoleARN: `${G.TRANSFER_LOGGING_ROLE_ARN}`,
 });
