@@ -43,6 +43,11 @@ export const ROUTE53_HOSTED_ZONE_DOMAIN = process.env.ROUTE53_HOSTED_ZONE_DOMAIN
 export const ROUTE53_SUBDOMAIN = process.env.ROUTE53_SUBDOMAIN;
 
 //
+// Transfer Family Config
+//
+export const TRANSFER_LOGGING_ROLE_ARN = process.env.TRANSFER_LOGGING_ROLE_ARN;
+
+//
 // S3 Config
 //
 export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;

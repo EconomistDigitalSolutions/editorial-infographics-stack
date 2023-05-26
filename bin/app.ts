@@ -47,7 +47,5 @@ S3.deploy();
 
 new SftpStack(app, `${G.APP_NAME}-transfer`, {
   ...defaultProps,
-  loggingRoleARN: 'arn:123456789:loggingRole',
-  bucketName: `${G.S3_BUCKET_NAME}`,
-  sftpUserRoleARN: 'arn:123456789:userRole',
+  loggingRoleARN: `${G.TRANSFER_LOGGING_ROLE_ARN}`,
 });
