@@ -1,12 +1,10 @@
-# Static Site Cloud Development Kit
+# Journalist Infographics Cloud Stack
 
-![Lint and Tests](https://github.com/drinkataco/cdk-static-site/actions/workflows/main.yml/badge.svg)
+![Lint and Tests](https://github.com/TheEconomistDigital/editorial-infographics-stack/actions/workflows/main.yml/badge.svg)
 
-This repositories purpose is to provide static S3-based sites.
+This repository's purpose is to provide the cloud stack and provision a storage solution for infographics created by The Economist journalists.
 
 ![Diagram](./assets/diagram.png)
-
-Its aim is to be highly configurable from ENV variables to allow reuse for any static website. Allowing you to configure S3 options, cloudfront options (such as error responses, geo blocks, http methods) and custom domains (https certificates, hosted zone name, subdomain name).
 
 See: [AWS Cloud Development Kit (CDK)](https://github.com/aws/aws-cdk)
 
@@ -48,20 +46,9 @@ By default, the `.env` file is used on the root of the project. However, you can
   S3_CACHE_CONTROL=*.html:public, max-age=0, must-revalidate|page-data/*:public, max-age=0, must-revalidate| chunk-map.json:public, max-age=0, must-revalidate|webpack.stats.json:public, max-age=0, must-revalidate|static/*:public, max-age=31536000, immutable|*.js:public, max-age=31536000, immutable|*.css:public, max-age=31536000, immutable|favicon.ico:public, max-age=2628000
   ```
 
-#### Cloudfront
+  ### Transfer Family
 
-- `CLOUDFRONT_ALLOWED_METHODS` _(default: ALLOW_ALL)_ - allowed HTTP methods. Enum value defined [here](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_cloudfront.AllowedMethods.html)
-- `CLOUDFRONT_ERROR_RESPONSES` - HTTP error codes and the objects they map to for default responses, for example `404=/404.html,500=error.html`
-- `CLOUDFRONT_GEO_DENYLIST` - Comma separated values of countries to block (using ISO 3166-1-alpha-2). For example, `CN,RU`
-- `CLOUDFRONT_LOGGING` _(default: 0)_ - a numerical value (0 for false, 1 for true) to indicate whether logging should be enabled for cloudfront
-- `CLOUDFRONT_PRICE_CLASS` _(default: ALL)_ - Price Class of Cloudfront Distribution. Enum value defined [here](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_cloudfront.PriceClass.html)
-- `CLOUDFRONT_ROOT_OBJECT` _(default: index.html)_ - default root object of distribution
-- `CLOUDFRONT_FUNCTIONS_REQUEST` - a file location of a [cloudfront function](https://aws.amazon.com/blogs/aws/introducing-cloudfront-functions-run-your-code-at-the-edge-with-low-latency-at-any-scale/) for requests. This directory can be absolute, or relative to the project folder. An example request function (for adding index.html to directory requests) is [provided](./cloudfront-functions/indexhtml.js). Set `CLOUDFRONT_FUNCTIONS_REQUEST=cloudfront-functions/viewer-request/indexhtml.js` to use it.
-- `CLOUDFRONT_FUNCTIONS_RESPONSE` - a file location of a [cloudfront function](https://aws.amazon.com/blogs/aws/introducing-cloudfront-functions-run-your-code-at-the-edge-with-low-latency-at-any-scale/) for responses. This directory can be absolute, or relative to the project folder. An example response function (for adding generic security headers) is [provided](./cloudfront-functions/securityheaders.js). Set `CLOUDFRONT_FUNCTIONS_RESPONSE=cloudfront-functions/viewer-response/securityheaders.js` to use it.
-
-##### Route53 and Certificate Manager
-
-- `CERTICIATE_ARN` - an ARN of an already provisioned certificate to use for the domain alias if you don't want one to be auto provisioned
+  Currently there are no special configuration options available for the Transfer Family SFTP server.
 
 ## Docker
 
