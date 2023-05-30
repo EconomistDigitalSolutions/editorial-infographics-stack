@@ -1,7 +1,7 @@
 {
-  "name": "static_site_cdk",
+  "name": "infographics_cdk",
   "version": "1.0.0",
-  "description": "Static site generator using S3, Cloudfront, and Route53",
+  "description": "Editorial Infographics infrastructure stack using S3 and Transfer Family",
   "main": "src/index.ts",
   "scripts": {
     "cdk": "cdk",

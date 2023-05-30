@@ -34,15 +34,6 @@ export const APP_NAME: string = process.env.APP_NAME as string;
 export const TAGS: T.Tags = stringToObject(process.env.TAGS || '');
 
 //
-// Route 53/Certificate Config
-//
-export const CERTIFICATE_ARN = process.env.CERTIFICATE_ARN;
-
-export const ROUTE53_HOSTED_ZONE_DOMAIN = process.env.ROUTE53_HOSTED_ZONE_DOMAIN;
-
-export const ROUTE53_SUBDOMAIN = process.env.ROUTE53_SUBDOMAIN;
-
-//
 // S3 Config
 //
 export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;

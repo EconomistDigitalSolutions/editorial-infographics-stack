@@ -4,7 +4,7 @@ import { App, Stack } from 'aws-cdk-lib';
 import S3Stack from '../lib/stacks/S3';
 
 describe('stack for S3', () => {
-  it('syntehsizes correctly for only required config', () => {
+  it('synthesizes correctly for only required config', () => {
     const app = new App();
     const stack = new Stack(app, 'S3Stack');
 
