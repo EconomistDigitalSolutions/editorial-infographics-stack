@@ -2,8 +2,6 @@ import { Construct } from 'constructs';
 import { Stack, StackProps } from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as transfer from 'aws-cdk-lib/aws-transfer';
-import * as logs from 'aws-cdk-lib/aws-logs';
-import NewRelicCloudWatchConstruct from '../constructs/newrelicCloudwatch';
 
 /**
  * A Stack for a Transfer Family SFTP server, with an S3 domain.
@@ -20,7 +18,6 @@ class SftpTransferStack extends Stack {
   /**
    * The corresponding CloudWatch log group for our server
    */
-  private logGroup: logs.ILogGroup;
 
   constructor(scope: Construct, private id: string, props: StackProps) {
     super(scope, id, props);
@@ -28,15 +25,6 @@ class SftpTransferStack extends Stack {
     this.server = this.createServer();
     this.serverId = this.server.attrServerId;
     this.server.loggingRole = this.createLoggingRole().roleArn;
-    this.logGroup = logs.LogGroup.fromLogGroupName(
-      this,
-      `${this.id}-newrelic-log-group`,
-      `/aws/transfer/${this.server.attrServerId}`,
-    );
-
-    // Set up NewRelic log shipping
-    const logShipper = new NewRelicCloudWatchConstruct(this, `${this.id}-newrelic-log-shipper`);
-    logShipper.createSubscriptionToLogGroup(this.id, this.logGroup);
   }
 
   private createServer(): transfer.CfnServer {
