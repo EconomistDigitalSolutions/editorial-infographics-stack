@@ -3,7 +3,7 @@ import { App, Stack } from 'aws-cdk-lib';
 
 import SftpTransferStack from '../lib/stacks/SFTP';
 
-describe('stack for S3', () => {
+describe('stack for Transfer Family', () => {
   it('synthesizes an SFTP server correctly', () => {
     const app = new App();
     const stack = new Stack(app, 'SFTPStack');

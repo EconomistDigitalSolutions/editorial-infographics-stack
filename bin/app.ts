@@ -4,6 +4,7 @@ import * as G from '../lib/consts';
 import { Tags as TagMap } from '../lib/types';
 import S3Stack from '../lib/stacks/S3';
 import SftpTransferStack from '../lib/stacks/SFTP';
+import NewRelicCloudWatchStack from '../lib/stacks/NewRelicLambdaStack';
 
 if (!G.APP_NAME) {
   throw Error('Please set an APP_NAME for your project');
@@ -45,6 +46,10 @@ const S3 = new S3Stack(app, `${G.APP_NAME}-s3`, {
 
 S3.deploy();
 
-new SftpTransferStack(app, `${G.APP_NAME}-transfer`, {
+const server = new SftpTransferStack(app, `${G.APP_NAME}-transfer`, {
   ...defaultProps,
+});
+
+new NewRelicCloudWatchStack(app, `${G.APP_NAME}-newrelic-ingestion-lambda`, {
+  serverId: server.serverId,
 });
