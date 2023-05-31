@@ -103,7 +103,7 @@ class S3Stack extends Stack {
     }
 
     new CfnOutput(this, `${this.id}-output-s3-oia`, {
-      value: this.getOriginAccessIdentity().originAccessIdentityName,
+      value: this.getOriginAccessIdentity().originAccessIdentityId,
     });
     new CfnOutput(this, `${this.id}-output-s3-bucket`, {
       value: this.getBucket().bucketName,
