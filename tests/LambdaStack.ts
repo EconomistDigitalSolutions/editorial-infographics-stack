@@ -1,4 +1,4 @@
-import { expect as expectCDK, haveResource } from '@aws-cdk/assert';
+import { Template, Match } from 'aws-cdk-lib/assertions';
 import { Duration, Stack } from 'aws-cdk-lib';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 
@@ -8,14 +8,17 @@ describe('LambdaStack', () => {
   test('should create a Lambda function', () => {
     const stack = new Stack();
 
-    new LambdaStack(stack, 'TestStack', {
+    const lambdaStack = new LambdaStack(stack, 'TestStack', {
       functionName: 'TestFunction',
-      handler: 'index.handler',
-      codePath: 'path/to/code',
+      handler: 'updateMetadata.handler',
+      codePath: 'build/functions',
     });
 
-    expectCDK(stack).to(
-      haveResource('AWS::Lambda::Function', {
+    const template = Template.fromStack(lambdaStack);
+
+    template.hasResource(
+      'AWS::Lambda::Function',
+      Match.objectEquals({
         Runtime: Runtime.NODEJS_14_X.toString(),
         Handler: 'index.handler',
         Timeout: Duration.seconds(30).toSeconds(),
@@ -26,14 +29,17 @@ describe('LambdaStack', () => {
   test('should output the function ARN', () => {
     const stack = new Stack();
 
-    new LambdaStack(stack, 'TestStack', {
+    const lambdaStack = new LambdaStack(stack, 'TestStack', {
       functionName: 'TestFunction',
-      handler: 'index.handler',
-      codePath: 'path/to/code',
+      handler: 'updateMetadata.handler',
+      codePath: 'build/functions',
     });
 
-    expectCDK(stack).to(
-      haveResource('AWS::CloudFormation::Output', {
+    const template = Template.fromStack(lambdaStack);
+
+    template.hasResource(
+      'AWS::CloudFormation::Output',
+      Match.objectEquals({
         ExportName: 'TestFunction-output-function-arn',
       }),
     );

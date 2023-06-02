@@ -1,5 +1,5 @@
 import * as s3 from '@aws-sdk/client-s3';
-import handler from './updateMetadata';
+import handler from '../functions/updateMetadata';
 
 jest.mock('@aws-sdk/client-s3', () => ({
   ...jest.requireActual('@aws-sdk/client-s3'),
