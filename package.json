@@ -9,7 +9,8 @@
     "cdk:synth": "npm run cdk -- synth '*'",
     "cdk:destroy": "npm run cdk -- destroy --all",
     "lint": "eslint .",
-    "test": "jest"
+    "test": "jest",
+    "build": "tsc functions/*.ts --outDir build"
   },
   "author": "",
   "license": "MIT",
