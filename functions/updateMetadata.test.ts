@@ -6,13 +6,13 @@ jest.mock('@aws-sdk/client-s3', () => ({
   CopyObjectCommand: jest.fn(),
 }));
 
-jest.mock('global.console', () => ({
-  ...jest.requireActual('global.console'),
-  log: jest.fn(),
-  error: jest.fn(),
-}));
-
 jest.spyOn(s3.S3Client.prototype, 'send').mockImplementation();
+const consoleLogMock = jest.spyOn(console, 'log').mockImplementation();
+const consoleErrorMock = jest.spyOn(console, 'error').mockImplementation();
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
 describe('handler', () => {
   test('should update metadata for an .html file with missing metadata', async () => {
@@ -51,7 +51,7 @@ describe('handler', () => {
     // THEN
     expect(s3.CopyObjectCommand).toHaveBeenCalledWith(params);
     expect(s3.S3Client.prototype.send).toHaveBeenCalledWith(new s3.CopyObjectCommand(params));
-    expect(console.log).toHaveBeenCalledWith(`Updated metadata for object: ${objectKey}`);
+    expect(consoleLogMock).toHaveBeenCalledWith(`Updated metadata for object: ${objectKey}`);
   });
 
   test('should not update metadata for non-.html file', async () => {
@@ -80,7 +80,7 @@ describe('handler', () => {
     // THEN
     expect(s3.CopyObjectCommand).not.toHaveBeenCalled();
     expect(s3.S3Client.prototype.send).not.toHaveBeenCalled();
-    expect(console.log).not.toHaveBeenCalled();
+    expect(consoleLogMock).not.toHaveBeenCalled();
   });
 
   test('should handle and log thrown error when updating metadata', async () => {
@@ -122,6 +122,6 @@ describe('handler', () => {
     // THEN
     expect(s3.CopyObjectCommand).toHaveBeenCalledWith(params);
     expect(s3.S3Client.prototype.send).toHaveBeenCalledWith((new s3.CopyObjectCommand(params)));
-    expect(console.error).toHaveBeenCalledWith('Error updating metadata: Error: A disastrous problem!');
+    expect(consoleErrorMock).toHaveBeenCalledWith('Error updating metadata: Error: A disastrous problem!');
   });
 });

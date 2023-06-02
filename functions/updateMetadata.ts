@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { S3Client, CopyObjectCommand } from '@aws-sdk/client-s3';
 import S3Stack from '../lib/stacks/S3';
 
