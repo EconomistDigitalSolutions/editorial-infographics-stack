@@ -85,7 +85,7 @@ describe('handler', () => {
 
   test('should handle and log thrown error when updating metadata', async () => {
     // Override our spy to thrown an error.
-    jest.spyOn(s3.S3Client.prototype, 'send').mockImplementation(() => { throw new Error('A disastrous problem!')});
+    jest.spyOn(s3.S3Client.prototype, 'send').mockImplementation(() => { throw new Error('A disastrous problem!'); });
 
     // GIVEN
     const bucketName = 'bucket';
