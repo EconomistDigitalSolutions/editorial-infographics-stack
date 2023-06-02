@@ -18,7 +18,7 @@ class LambdaStack extends Stack {
       functionName: props.functionName,
       runtime: Runtime.NODEJS_14_X,
       handler: props.handler,
-      code: Code.fromAsset(props.codePath),
+      code: Code.fromAsset(props.codePath), // TODO: potentially hardcode?
       timeout: Duration.seconds(30),
     });
 

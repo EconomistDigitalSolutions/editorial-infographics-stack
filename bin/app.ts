@@ -48,3 +48,5 @@ S3.deploy();
 new SftpTransferStack(app, `${G.APP_NAME}-transfer`, {
   ...defaultProps,
 });
+
+// TODO: Lambda stack
