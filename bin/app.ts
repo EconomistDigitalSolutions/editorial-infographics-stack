@@ -1,5 +1,6 @@
 import { App, StackProps, Tags } from 'aws-cdk-lib';
 
+import LambdaStack from '../lib/stacks/Lambda';
 import * as G from '../lib/consts';
 import { Tags as TagMap } from '../lib/types';
 import S3Stack from '../lib/stacks/S3';
@@ -50,3 +51,10 @@ new SftpTransferStack(app, `${G.APP_NAME}-transfer`, {
 });
 
 // TODO: Lambda stack
+
+new LambdaStack(app, `${G.APP_NAME}-update-metadata`, {
+  ...defaultProps,
+  functionName: 'update-metadata-lambda',
+  codePath: 'build/functions',
+  handler: 'updateMetadata.js',
+});
