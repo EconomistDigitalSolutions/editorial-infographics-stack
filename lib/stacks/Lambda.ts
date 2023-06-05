@@ -10,8 +10,8 @@ import * as iam from 'aws-cdk-lib/aws-iam';
 interface LambdaStackProps extends StackProps {
   functionName: string;
   entry: string;
-  s3Trigger: lambdaEventSources.S3EventSource;
   bucketArn: string;
+  s3Trigger?: lambdaEventSources.S3EventSource;
 }
 
 class LambdaStack extends Stack {
