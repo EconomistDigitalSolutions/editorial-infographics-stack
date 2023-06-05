@@ -9,7 +9,7 @@ const handler = async (event: {
   const objectKey = s3.object.key;
 
   // Check if the uploaded file is a .html file
-  if (objectKey.endsWith('.html')) {
+  if (objectKey.endsWith('.html') || objectKey.endsWith('.txt')) {
     const s3Client = new S3Client(S3Stack);
     const params = {
       Bucket: bucketName,
@@ -17,7 +17,7 @@ const handler = async (event: {
       Key: objectKey,
       MetadataDirective: 'REPLACE',
       Metadata: {
-        'Content-Type': 'text/html;charset=utf-8',
+        'Content-Type': objectKey.endsWith('.html') ? 'text/html;charset=utf-8' : 'text/plain;charset=utf-8',
       },
     };
 

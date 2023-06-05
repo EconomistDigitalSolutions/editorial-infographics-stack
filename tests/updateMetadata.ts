@@ -54,10 +54,49 @@ describe('handler', () => {
     expect(consoleLogMock).toHaveBeenCalledWith(`Updated metadata for object: ${objectKey}`);
   });
 
-  test('should not update metadata for non-.html file', async () => {
+  test('should update metadata for a .txt file with missing metadata', async () => {
     // GIVEN
     const bucketName = 'bucket';
-    const objectKey = 'test.txt';
+    const objectKey = 'index.txt';
+
+    const params = {
+      Bucket: bucketName,
+      CopySource: encodeURIComponent(`${bucketName}/${objectKey}`),
+      Key: objectKey,
+      MetadataDirective: 'REPLACE',
+      Metadata: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+    };
+
+    const event = {
+      Records: [
+        {
+          s3: {
+            bucket: {
+              name: bucketName,
+            },
+            object: {
+              key: objectKey,
+            },
+          },
+        },
+      ],
+    };
+
+    // WHEN
+    await handler(event);
+
+    // THEN
+    expect(s3.CopyObjectCommand).toHaveBeenCalledWith(params);
+    expect(s3.S3Client.prototype.send).toHaveBeenCalledWith(new s3.CopyObjectCommand(params));
+    expect(consoleLogMock).toHaveBeenCalledWith(`Updated metadata for object: ${objectKey}`);
+  });
+
+  test('should not update metadata for non-.html/.txt file', async () => {
+    // GIVEN
+    const bucketName = 'bucket';
+    const objectKey = 'test.png';
 
     const event = {
       Records: [
