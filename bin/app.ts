@@ -55,7 +55,6 @@ new SftpTransferStack(app, `${G.APP_NAME}-transfer`, {
 new LambdaStack(app, `${G.APP_NAME}-update-metadata`, {
   ...defaultProps,
   functionName: 'update-metadata-lambda',
-  codePath: 'build',
-  handler: 'functions/updateMetadata.js',
+  entry: 'build/functions/updateMetadata/index.js',
   s3Trigger: S3.getEventSource(),
 });

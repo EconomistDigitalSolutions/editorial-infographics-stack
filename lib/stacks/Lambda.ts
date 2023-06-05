@@ -2,13 +2,13 @@ import { Construct } from 'constructs';
 import {
   Stack, StackProps, Duration, CfnOutput,
 } from 'aws-cdk-lib';
-import { Code, Function, Runtime } from 'aws-cdk-lib/aws-lambda';
+import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 interface LambdaStackProps extends StackProps {
   functionName: string;
-  handler: string;
-  codePath: string;
+  entry: string;
   s3Trigger: lambdaEventSources.S3EventSource;
 }
 
@@ -16,12 +16,13 @@ class LambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
     super(scope, id, props);
 
-    const lambdaFunction = new Function(this, props.functionName, {
+    const lambdaFunction = new NodejsFunction(this, props.functionName, {
       functionName: props.functionName,
       runtime: Runtime.NODEJS_14_X,
-      handler: props.handler,
-      code: Code.fromAsset(props.codePath), // TODO: potentially hardcode?
+      entry: props.entry,
+      handler: 'default',
       timeout: Duration.seconds(30),
+      projectRoot: '.',
     });
 
     if (props.s3Trigger) lambdaFunction.addEventSource(props.s3Trigger);

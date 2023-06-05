@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { S3Client, CopyObjectCommand } from '@aws-sdk/client-s3';
-import S3Stack from '../lib/stacks/S3';
+import S3Stack from '../../lib/stacks/S3';
 
 const handler = async (event: {
   Records: { s3: { bucket: { name: string }, object: { key: string } } }[] }) => {
