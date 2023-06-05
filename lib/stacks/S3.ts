@@ -19,6 +19,8 @@ import {
 } from 'aws-cdk-lib/aws-s3-deployment';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 
 import { GlobCacheControl } from '../types';
 
@@ -83,6 +85,11 @@ class S3Stack extends Stack {
   private props: S3StackProps;
 
   /**
+   * The source to trigger the Lambda
+   */
+  private s3PutEventSource: lambdaEventSources.S3EventSource;
+
+  /**
    * Our access policy for the bucket and cloudfront
    */
   private originAccessIdentity: OriginAccessIdentity;
@@ -101,6 +108,12 @@ class S3Stack extends Stack {
     if (this.props.enableBackup) {
       this.configureBackup();
     }
+
+    this.s3PutEventSource = new lambdaEventSources.S3EventSource(this.bucket, {
+      events: [
+        s3.EventType.OBJECT_CREATED_PUT,
+      ],
+    });
 
     new CfnOutput(this, `${this.id}-output-s3-oia`, {
       value: this.getOriginAccessIdentity().originAccessIdentityId,
@@ -299,6 +312,10 @@ class S3Stack extends Stack {
    */
   public getBucket(): Bucket {
     return this.bucket;
+  }
+
+  public getEventSource(): lambdaEventSources.S3EventSource {
+    return this.s3PutEventSource;
   }
 
   /**
