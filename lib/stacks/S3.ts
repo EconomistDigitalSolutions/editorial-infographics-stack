@@ -29,7 +29,7 @@ import { GlobCacheControl } from '../types';
  */
 interface S3StackProps extends StackProps {
   /** The name of our S3 Bucket */
-  bucketName?: string;
+  bucketName: string;
   /**
    * The source information of our bucket.
    */
@@ -145,11 +145,11 @@ class S3Stack extends Stack {
     });
 
     // // Grant necessary permissions to the backup role
-    const backupPlanRole = new iam.Role(this, 's3-example-bucket-backup-role', {
+    const backupPlanRole = new iam.Role(this, `${this.id}-role`, {
       assumedBy: new iam.ServicePrincipal('backup.amazonaws.com'),
     });
 
-    const awsS3BackupsCustomPolicy = new iam.Policy(this, 's3-custom-aws-backup-policy', {
+    const awsS3BackupsCustomPolicy = new iam.Policy(this, `${this.id}-policy`, {
       statements: [
         new iam.PolicyStatement({
           sid: 'S3BucketBackupPermissions',

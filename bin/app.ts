@@ -57,4 +57,6 @@ new LambdaStack(app, `${G.APP_NAME}-update-metadata`, {
   functionName: 'update-metadata-lambda',
   entry: 'build/functions/updateMetadata/index.js',
   s3Trigger: S3.getEventSource(),
+  // Importing the ARN directly from the S3 stack (apparently) causes a cyclical reference
+  bucketArn: `arn:aws:s3:::${G.S3_BUCKET_NAME}`,
 });

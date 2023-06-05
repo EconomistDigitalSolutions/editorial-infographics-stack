@@ -36,7 +36,7 @@ export const TAGS: T.Tags = stringToObject(process.env.TAGS || '');
 //
 // S3 Config
 //
-export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || `infographics-editorial-${new Date().getTime()}`;
 
 // For docker contexts, we always overwrite the content path and skip the S3_CONTENT_PATH value
 export const S3_CONTENT_PATH = process.env.DOCKER_S3_CONTENT_PATH || process.env.S3_CONTENT_PATH || '';
