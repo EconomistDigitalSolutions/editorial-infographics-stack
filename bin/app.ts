@@ -50,8 +50,6 @@ new SftpTransferStack(app, `${G.APP_NAME}-transfer`, {
   ...defaultProps,
 });
 
-// TODO: Lambda stack
-
 new LambdaStack(app, `${G.APP_NAME}-update-metadata`, {
   ...defaultProps,
   functionName: 'update-metadata-lambda',
