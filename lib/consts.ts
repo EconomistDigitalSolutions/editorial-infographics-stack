@@ -36,7 +36,7 @@ export const TAGS: T.Tags = stringToObject(process.env.TAGS || '');
 //
 // S3 Config
 //
-export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
+export const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME || `infographics-editorial-${new Date().getTime()}`;
 
 // For docker contexts, we always overwrite the content path and skip the S3_CONTENT_PATH value
 export const S3_CONTENT_PATH = process.env.DOCKER_S3_CONTENT_PATH || process.env.S3_CONTENT_PATH || '';
@@ -50,5 +50,13 @@ export const S3_CACHE_CONTROL: T.GlobCacheControl = stringToObject(
 );
 
 export const ENABLE_BACKUP = process.env.ENABLE_BACKUP === 'true';
+//
+// Lambda Config
+//
+export const LAMBDA_FUNCTION_NAME = process.env.LAMBDA_FUNCTION_NAME;
+
+export const LAMBDA_INDEX_HANDLER = process.env.LAMBDA_INDEX_HANDLER;
+
+export const LAMBDA_CODE_PATH = process.env.LAMBDA_CODE_PATH;
 
 export const BACKUP_RETENTION_DAYS = parseInt(process.env.BACKUP_RETENTION_DAYS ?? '35', 10);

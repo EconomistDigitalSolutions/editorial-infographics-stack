@@ -1,5 +1,5 @@
 {
-  "include": ["./lib/**/*", "./bin/**/*", "./tests/**/*"],
+  "include": ["./lib/**/*", "./functions/**/*", "./bin/**/*", "./tests/**/*"],
   "compilerOptions": {
     "lib": ["esnext"],
     "module": "commonjs",

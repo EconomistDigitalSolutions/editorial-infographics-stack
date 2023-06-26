@@ -9,6 +9,7 @@ describe('stack for S3', () => {
     const stack = new Stack(app, 'S3Stack');
 
     const s3Stack = new S3Stack(stack, 'TestS3Stack', {
+      bucketName: 'test-bucket',
       bucketSource: {
         path: '/path/to/files',
       },
@@ -23,6 +24,7 @@ describe('stack for S3', () => {
       Match.objectEquals({
         Type: 'AWS::S3::Bucket',
         Properties: {
+          BucketName: 'test-bucket',
           VersioningConfiguration: {
             Status: 'Enabled',
           },

@@ -19,6 +19,8 @@ import {
 } from 'aws-cdk-lib/aws-s3-deployment';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as events from 'aws-cdk-lib/aws-events';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
+import * as s3 from 'aws-cdk-lib/aws-s3';
 
 import { GlobCacheControl } from '../types';
 
@@ -27,7 +29,7 @@ import { GlobCacheControl } from '../types';
  */
 interface S3StackProps extends StackProps {
   /** The name of our S3 Bucket */
-  bucketName?: string;
+  bucketName: string;
   /**
    * The source information of our bucket.
    */
@@ -83,6 +85,11 @@ class S3Stack extends Stack {
   private props: S3StackProps;
 
   /**
+   * The source to trigger the Lambda
+   */
+  private s3PutEventSource: lambdaEventSources.S3EventSource;
+
+  /**
    * Our access policy for the bucket and cloudfront
    */
   private originAccessIdentity: OriginAccessIdentity;
@@ -102,8 +109,14 @@ class S3Stack extends Stack {
       this.configureBackup();
     }
 
+    this.s3PutEventSource = new lambdaEventSources.S3EventSource(this.bucket, {
+      events: [
+        s3.EventType.OBJECT_CREATED_PUT,
+      ],
+    });
+
     new CfnOutput(this, `${this.id}-output-s3-oia`, {
-      value: this.getOriginAccessIdentity().originAccessIdentityName,
+      value: this.getOriginAccessIdentity().originAccessIdentityId,
     });
     new CfnOutput(this, `${this.id}-output-s3-bucket`, {
       value: this.getBucket().bucketName,
@@ -132,11 +145,11 @@ class S3Stack extends Stack {
     });
 
     // // Grant necessary permissions to the backup role
-    const backupPlanRole = new iam.Role(this, 's3-example-bucket-backup-role', {
+    const backupPlanRole = new iam.Role(this, `${this.id}-role`, {
       assumedBy: new iam.ServicePrincipal('backup.amazonaws.com'),
     });
 
-    const awsS3BackupsCustomPolicy = new iam.Policy(this, 's3-custom-aws-backup-policy', {
+    const awsS3BackupsCustomPolicy = new iam.Policy(this, `${this.id}-policy`, {
       statements: [
         new iam.PolicyStatement({
           sid: 'S3BucketBackupPermissions',
@@ -299,6 +312,10 @@ class S3Stack extends Stack {
    */
   public getBucket(): Bucket {
     return this.bucket;
+  }
+
+  public getEventSource(): lambdaEventSources.S3EventSource {
+    return this.s3PutEventSource;
   }
 
   /**

@@ -7,3 +7,5 @@
 /.build
 *.swp
 cdk.context.json
+build
+.DS_STORE

@@ -1,5 +1,6 @@
 import { App, StackProps, Tags } from 'aws-cdk-lib';
 
+import LambdaStack from '../lib/stacks/Lambda';
 import * as G from '../lib/consts';
 import { Tags as TagMap } from '../lib/types';
 import S3Stack from '../lib/stacks/S3';
@@ -47,4 +48,13 @@ S3.deploy();
 
 new SftpTransferStack(app, `${G.APP_NAME}-transfer`, {
   ...defaultProps,
+});
+
+new LambdaStack(app, `${G.APP_NAME}-update-metadata`, {
+  ...defaultProps,
+  functionName: 'update-metadata-lambda',
+  entry: 'build/functions/updateMetadata/index.js',
+  s3Trigger: S3.getEventSource(),
+  // Importing the ARN directly from the S3 stack (apparently) causes a cyclical reference
+  bucketArn: `arn:aws:s3:::${G.S3_BUCKET_NAME}`,
 });
