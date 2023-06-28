@@ -67,7 +67,7 @@ jobs:
           role-arn: 'arn:aws:iam::"${AWS_ACCOUNT_ID}":role/circleCiIdentityTrustProvider'
           role-session-name: editorial-infographics-stack
       - run:
-          name: Build and push docker image to ECR
+          name: Deploy Infrastructure
           environment:
             NAMESPACE: << parameters.namespace >> 
           command: |
@@ -76,19 +76,18 @@ jobs:
 
 workflows:
   version: 2
-  main:
+  deploy-to-test:
     jobs:
-      # Filters are required on these jobs in order for them to be triggered with tag releases.
       - cdk-build:
-          filters:
-            tags:
-              only: /.*/
+          filters: &filter-test-release
+            branches:
+              only:
+                - 'environment/test'
       - cdk-lint:
           requires:
             - cdk-build
           filters:
-            tags:
-              only: /.*/
+            <<: *filter-test-release
       - deploy:
           name: Deploy Test
           namespace: dev
@@ -98,29 +97,27 @@ workflows:
           requires:
             - cdk-lint
           filters:
+            <<: *filter-test-release
+
+  deploy-to-prod:
+    jobs:
+      - cdk-build:
+          filters: &filter-prod-release
             branches:
-              only:
-                - 'environment/test'
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+/
+      - cdk-lint:
+          requires:
+            - cdk-build
+          filters:
+            <<: *filter-prod-release
       - deploy:
           name: 'Deploy Prod'
           context: 
             - 'editorial-tools-ctx-circleci'
             - 'editorial-tools-ctx-aws-132119650493'
           namespace: 'prod'
-          filters: &filters-prod-release
-            branches:
-              ignore: /.*/
-            tags:
-              only: /^v[0-9]+\.[0-9]+\.[0-9]+/
-
-      - editorial-slack-deployment/slack-notification-of-release:
-          context:
-            - 'editorial-tools-ctx-github'
-            - 'editorial-tools-ctx-slack-webhooks'
-          name: 'Notify CMS Releases channels'
-          reponame: editorial-infographics-stack
-          requires:
-            - 'Deploy Prod'
-          filters: 
-            <<: *filters-prod-release
+          filters:
+            <<: *filter-prod-release
 
