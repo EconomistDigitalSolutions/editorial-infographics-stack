@@ -1,0 +1,126 @@
+version: 2.1
+default_workspace: &cdk_workspace
+  attach_workspace:
+    at: ~/repo
+
+commands:
+  setup:
+    description: "Install basic dependencies"
+    steps:
+      - checkout
+      - run: sudo apt-get update
+      - run: sudo apt install python3 python3-pip
+      - run: sudo pip3 install --upgrade awscli
+      - setup_remote_docker:
+          version: 20.10.14
+
+orbs:
+  editorial-slack-deployment: economist-digital-solutions/editorial-slack-deployment@0.0.10
+  aws-cli: circleci/aws-cli@3.1
+
+jobs:
+  cdk-build:
+    docker:
+      - image: cimg/node:16.13.1
+    working_directory: ~/repo
+    steps:
+      - checkout:
+          path: ~/repo
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - cdk-{{ checksum "package-lock.json" }}
+      - run: npm ci
+      - save_cache:
+          paths:
+            - ~/.npm
+          key: -{{ checksum "package-lock.json" }}
+      - persist_to_workspace:
+          root: ~/repo
+          paths: ['./']
+
+  cdk-lint:
+    docker:
+      - image: cimg/node:16.13.1
+    steps:
+      - <<: *cdk_workspace
+      - run: |
+          cd ~/repo || exit 1
+          mkdir -p ./test-results
+          npm run lint:js -- --format junit --output-file ./test-results/eslint.xml
+      - store_test_results:
+          path: './test-results'
+
+  deploy:
+    parameters:
+      namespace:
+        type: string
+        default: ''
+    docker:
+      - image: cimg/node:16.13.1
+    working_directory: ~/project
+    steps:
+      - <<: *cdk_workspace
+      - setup
+      - aws-cli/setup:
+          profile-name: WEB-IDENTITY-PROFILE
+          role-arn: 'arn:aws:iam::"${AWS_ACCOUNT_ID}":role/circleCiIdentityTrustProvider'
+          role-session-name: editorial-infographics-stack
+      - run:
+          name: Build and push docker image to ECR
+          environment:
+            NAMESPACE: << parameters.namespace >> 
+          command: |
+            set -e
+            bash ./.circleci/deploy.sh
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      # Filters are required on these jobs in order for them to be triggered with tag releases.
+      - cdk-build:
+          filters:
+            tags:
+              only: /.*/
+      - cdk-lint:
+          requires:
+            - cdk-build
+          filters:
+            tags:
+              only: /.*/
+      - deploy:
+          name: Deploy Test
+          namespace: dev
+          context:
+            - 'editorial-tools-ctx-circleci'
+            - 'editorial-tools-ctx-aws-025056728567'
+          requires:
+            - cdk-lint
+          filters:
+            branches:
+              only:
+                - 'environment/test'
+      - deploy:
+          name: 'Deploy Prod'
+          context: 
+            - 'editorial-tools-ctx-circleci'
+            - 'editorial-tools-ctx-aws-132119650493'
+          namespace: 'prod'
+          filters: &filters-prod-release
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+/
+
+      - editorial-slack-deployment/slack-notification-of-release:
+          context:
+            - 'editorial-tools-ctx-github'
+            - 'editorial-tools-ctx-slack-webhooks'
+          name: 'Notify CMS Releases channels'
+          reponame: editorial-infographics-stack
+          requires:
+            - 'Deploy Prod'
+          filters: 
+            <<: *filters-prod-release
+
