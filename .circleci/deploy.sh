@@ -13,7 +13,6 @@ fi
 
 IMAGE_TAG=$CIRCLE_SHA1
 
-declare -r ASSUMED_ROLE_NAME="circleCiIdentityTrustProvider" # DEFAULT ROLE: FIXME: More specific
 declare -x NAMESPACE
 
 #########################################
@@ -88,34 +87,9 @@ function deploy() {
   npm run cdk:deploy-ci
 }
 
-#########################################
-# Assume role and update credentials with role
-# Globals:
-#   None
-# Arguments:
-#   1 - ARN of role to assume
-#   2 - name of role (optional)
-#######################################
-function assume_role() {
-  local role_arn="$1"
-
-  # shellcheck disable=SC2181
-  if [[ "$?" -ne "0" ]]; then
-    echo "Error Assuming role ${role_arn}" 1>&2
-    exit 111
-  fi
-
-  assumed_role_name=$(aws sts get-caller-identity --query 'UserId')
-  echo "Using CICD User ${assumed_role_name}"
-}
-
 function main() {
-  local account_id
 
   echo "Updating environment '${NAMESPACE}'"
-
-  account_id=$(aws sts get-caller-identity --query 'Account' --output text)
-  assume_role "arn:aws:iam::${account_id}:role/${ASSUMED_ROLE_NAME}"
 
   source_env_file
 
