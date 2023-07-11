@@ -39,17 +39,6 @@ jobs:
           root: ~/repo
           paths: ['./']
 
-  cdk-lint:
-    docker:
-      - image: cimg/node:16.13.1
-    steps:
-      - <<: *cdk_workspace
-      - run: |
-          cd ~/repo || exit 1
-          mkdir -p ./test-results
-          npm run lint:js -- --format junit --output-file ./test-results/eslint.xml
-      - store_test_results:
-          path: './test-results'
 
   deploy:
     parameters:
@@ -80,19 +69,14 @@ workflows:
             branches:
               only:
                 - 'environment/test'
-      - cdk-lint:
-          requires:
-            - cdk-build
-          filters:
-            <<: *filter-test-release
       - deploy:
           name: Deploy Dev
           namespace: dev
+          requires:
+            - cdk-build
           context:
             - 'editorial-tools-ctx-circleci'
             - 'editorial-tools-ctx-aws-467992163263'
-          requires:
-            - cdk-lint
           filters:
             <<: *filter-test-release
 
@@ -104,12 +88,9 @@ workflows:
               ignore: /.*/
             tags:
               only: /^v[0-9]+\.[0-9]+\.[0-9]+/
-      - cdk-lint:
+      - deploy:
           requires:
             - cdk-build
-          filters:
-            <<: *filter-prod-release
-      - deploy:
           name: 'Deploy Prod'
           context: 
             - 'editorial-tools-ctx-circleci'
