@@ -84,7 +84,7 @@ function deploy() {
 
   cd ~/repo/ || exit 2
 
-  npm run cdk:deploy-ci
+  npm run cdk:deploy
 }
 
 function main() {
