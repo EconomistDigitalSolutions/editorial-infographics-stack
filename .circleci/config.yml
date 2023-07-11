@@ -15,8 +15,8 @@ commands:
           version: 20.10.14
 
 orbs:
+  enablement: economist-digital-solutions/enablement@1
   editorial-slack-deployment: economist-digital-solutions/editorial-slack-deployment@0.0.10
-  aws-cli: circleci/aws-cli@3.1
 
 jobs:
   cdk-build:
@@ -60,12 +60,9 @@ jobs:
       - image: cimg/node:16.13.1
     working_directory: ~/project
     steps:
+      - enablement/aws-setup      
       - <<: *cdk_workspace
       - setup
-      - aws-cli/setup:
-          profile-name: WEB-IDENTITY-PROFILE
-          role-arn: 'arn:aws:iam::"${AWS_ACCOUNT_ID}":role/circleCiIdentityTrustProvider'
-          role-session-name: editorial-infographics-stack
       - run:
           name: Deploy Infrastructure
           environment:
@@ -89,11 +86,11 @@ workflows:
           filters:
             <<: *filter-test-release
       - deploy:
-          name: Deploy Test
+          name: Deploy Dev
           namespace: dev
           context:
             - 'editorial-tools-ctx-circleci'
-            - 'editorial-tools-ctx-aws-025056728567'
+            - 'editorial-tools-ctx-aws-467992163263'
           requires:
             - cdk-lint
           filters:
@@ -116,7 +113,7 @@ workflows:
           name: 'Deploy Prod'
           context: 
             - 'editorial-tools-ctx-circleci'
-            - 'editorial-tools-ctx-aws-132119650493'
+            - 'editorial-tools-ctx-aws-993439498522'
           namespace: 'prod'
           filters:
             <<: *filter-prod-release
