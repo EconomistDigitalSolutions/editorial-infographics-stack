@@ -15,7 +15,7 @@ commands:
           version: 20.10.14
 
 orbs:
-  enablement: economist-digital-solutions/enablement@1
+  enablement: economist-digital-solutions/enablement@1.1.16
   editorial-slack-deployment: economist-digital-solutions/editorial-slack-deployment@0.0.10
 
 jobs:
