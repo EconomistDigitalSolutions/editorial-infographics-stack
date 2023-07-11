@@ -5,7 +5,7 @@ default_workspace: &cdk_workspace
 
 commands:
   setup:
-    description: "Install basic dependencies"
+    description: "Install basic dependencies TEST"
     steps:
       - checkout
       - run: sudo apt-get update
