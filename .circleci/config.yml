@@ -1,0 +1,120 @@
+version: 2.1
+default_workspace: &cdk_workspace
+  attach_workspace:
+    at: ~/repo
+
+commands:
+  setup:
+    description: "Install basic dependencies"
+    steps:
+      - checkout
+      - run: sudo apt-get update
+      - run: sudo apt install python3 python3-pip
+      - run: sudo pip3 install --upgrade awscli
+      - setup_remote_docker:
+          version: 20.10.14
+
+orbs:
+  enablement: economist-digital-solutions/enablement@1
+  editorial-slack-deployment: economist-digital-solutions/editorial-slack-deployment@0.0.10
+
+jobs:
+  cdk-build:
+    docker:
+      - image: cimg/node:16.13.1
+    working_directory: ~/repo
+    steps:
+      - checkout:
+          path: ~/repo
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+            - cdk-{{ checksum "package-lock.json" }}
+      - run: npm ci
+      - save_cache:
+          paths:
+            - ~/.npm
+          key: -{{ checksum "package-lock.json" }}
+      - persist_to_workspace:
+          root: ~/repo
+          paths: ['./']
+
+  cdk-lint:
+    docker:
+      - image: cimg/node:16.13.1
+    steps:
+      - <<: *cdk_workspace
+      - run: |
+          cd ~/repo || exit 1
+          mkdir -p ./test-results
+          npm run lint:js -- --format junit --output-file ./test-results/eslint.xml
+      - store_test_results:
+          path: './test-results'
+
+  deploy:
+    parameters:
+      namespace:
+        type: string
+        default: ''
+    docker:
+      - image: cimg/node:16.13.1
+    working_directory: ~/project
+    steps:
+      - enablement/aws-setup      
+      - <<: *cdk_workspace
+      - setup
+      - run:
+          name: Deploy Infrastructure
+          environment:
+            NAMESPACE: << parameters.namespace >> 
+          command: |
+            set -e
+            bash ./.circleci/deploy.sh
+
+workflows:
+  version: 2
+  deploy-to-test:
+    jobs:
+      - cdk-build:
+          filters: &filter-test-release
+            branches:
+              only:
+                - 'environment/test'
+      - cdk-lint:
+          requires:
+            - cdk-build
+          filters:
+            <<: *filter-test-release
+      - deploy:
+          name: Deploy Dev
+          namespace: dev
+          context:
+            - 'editorial-tools-ctx-circleci'
+            - 'editorial-tools-ctx-aws-467992163263'
+          requires:
+            - cdk-lint
+          filters:
+            <<: *filter-test-release
+
+  deploy-to-prod:
+    jobs:
+      - cdk-build:
+          filters: &filter-prod-release
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+/
+      - cdk-lint:
+          requires:
+            - cdk-build
+          filters:
+            <<: *filter-prod-release
+      - deploy:
+          name: 'Deploy Prod'
+          context: 
+            - 'editorial-tools-ctx-circleci'
+            - 'editorial-tools-ctx-aws-993439498522'
+          namespace: 'prod'
+          filters:
+            <<: *filter-prod-release
+
