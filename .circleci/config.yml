@@ -70,7 +70,7 @@ workflows:
               only:
                 - 'environment/test'
       - deploy:
-          name: Deploy Dev
+          name: deploy-infographics-dev
           namespace: dev
           requires:
             - cdk-build
@@ -91,7 +91,7 @@ workflows:
       - deploy:
           requires:
             - cdk-build
-          name: 'Deploy Prod'
+          name: 'deploy-infographics-prod'
           context: 
             - 'editorial-tools-ctx-circleci'
             - 'editorial-tools-ctx-aws-993439498522'
