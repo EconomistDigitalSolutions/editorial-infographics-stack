@@ -11,6 +11,7 @@ commands:
       - run: sudo apt-get update
       - run: sudo apt install python3 python3-pip
       - run: sudo pip3 install --upgrade awscli
+      - run: npm install -g esbuild
       - setup_remote_docker:
           version: 20.10.14
 
@@ -47,7 +48,7 @@ jobs:
         default: ''
     docker:
       - image: cimg/node:16.13.1
-    working_directory: ~/project
+    working_directory: ~/repo
     steps:
       - enablement/aws-setup      
       - <<: *cdk_workspace
