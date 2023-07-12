@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "cdk": "cdk",
-    "cdk:deploy": "npm run build && npm run cdk -- deploy '*'",
+    "cdk:deploy": "npm run build && npm run cdk -- deploy '*' --require-approval never",
     "cdk:synth": "npm run cdk -- synth '*'",
     "cdk:destroy": "npm run cdk -- destroy --all",
     "lint": "eslint .",
